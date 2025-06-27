@@ -1,0 +1,294 @@
+{
+  "name": "getStudentInfo",
+  "description": "Retrieves student information by their Driver's License number. Do not show classId, avaialability of classes to the user.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "The driver's license number of the student."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "id"
+    ]
+  }
+}
+
+
+
+
+{
+  "name": "updateStudentInfo",
+  "description": "Updates student's info by their Driver's License number.",
+  "strict": false,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "The driver's license number of the student."
+      },
+      "FirstName": {
+        "type": "string",
+        "description": "The first name of the student."
+      },
+      "LastName": {
+        "type": "string",
+        "description": "The last name of the student."
+      },
+      "Address": {
+        "type": "string",
+        "description": "The address of the student."
+      },
+      "Email": {
+        "type": "string",
+        "description": "The email of the student."
+      },
+      "City": {
+        "type": "string",
+        "description": "The city of the student."
+      },
+      "State": {
+        "type": "string",
+        "description": "The state of the student."
+      },
+      "DateOfBirth": {
+        "type": "string",
+        "format": "date",
+        "description": "The date of birth of the student."
+      },
+      "ZipCode": {
+        "type": "string",
+        "description": "The zip code of the student."
+      },
+      "home_phone": {
+        "type": "string",
+        "description": "Home phone number"
+      },
+      "work_phone": {
+        "type": "string",
+        "description": "Work phone number"
+      },
+      "cell_phone": {
+        "type": "string",
+        "description": "Cell phone number"
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "id"
+    ]
+  }
+}
+
+
+
+
+{
+  "name": "getStudentBookedAppointments",
+  "description": "Retrieves booked appointments for a specific student.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "The driver's license number of the student."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "id"
+    ]
+  }
+}
+
+
+{
+  "name": "getStudentPreviousInstructors",
+  "description": "Retrieves previous instructors for a student in a specific class.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "studentId": {
+        "type": "string",
+        "description": "The driver's license number of the student."
+      },
+      "classId": {
+        "type": "string",
+        "description": "The class ID."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "studentId",
+      "classId"
+    ]
+  }
+}
+{
+  "name": "getInstructorsOpenSlots",
+  "description": "Fetches free instructors who are available for a lesson.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "lesson": {
+        "type": "string",
+        "description": "the lesson from student info that has parameter classId"
+      },
+      "date": {
+        "type": "string",
+        "description": "The date for which to check availability in format YYYY-MM-DD."
+      },
+      "location": {
+        "type": "string",
+        "description": "The location of the instuctors. AS stands for queens, BK stands For Brooklyn. Do not show user about this short names. For brooklyn show address: 2444 Linden blvd. For Queens: 2444 Linden blvd."
+      },
+      "duration": {
+        "type": "number",
+        "description": "The duration of the lesson in hours. For example, 1.5 hour, 2 hours, 3 hours. Do not make any calcucation based on this value."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "lesson",
+      "date",
+      "location",
+      "duration"
+    ]
+  }
+}
+{
+  "name": "bookAppointment",
+  "description": "Books appointment for user.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "motoristId": {
+        "type": "string",
+        "description": "Id of the instructor which user chose."
+      },
+      "classId": {
+        "type": "string",
+        "description": "Id of the class that user chose."
+      },
+      "StudentID": {
+        "type": "string",
+        "description": "Id of the student."
+      },
+      "AppointmentDate": {
+        "type": "string",
+        "description": "Date of the appointment in format of YYYY-MM-DD"
+      },
+      "StartRow": {
+        "type": "string",
+        "description": "Hour which user chose for the appointment in format of hh:mm A."
+      },
+      "EndRow": {
+        "type": "string",
+        "description": "Hour which user chose for the appointment plus duration of appointment in format of hh:mm A."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "motoristId",
+      "EndRow",
+      "StartRow",
+      "AppointmentDate",
+      "StudentID",
+      "classId"
+    ]
+  }
+}
+{
+  "name": "rescheduleAppointment",
+  "description": "Reschedules appointment for user.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "motoristId": {
+        "type": "string",
+        "description": "Id of the instructor which user chose."
+      },
+      "classId": {
+        "type": "string",
+        "description": "Id of the class that user chose."
+      },
+      "StudentID": {
+        "type": "string",
+        "description": "Id of the student."
+      },
+      "SysID": {
+        "type": "number",
+        "description": "Id of the appointment."
+      },
+      "AppointmentDate": {
+        "type": "string",
+        "description": "Date of the appointment in format of YYYY-MM-DD"
+      },
+      "StartRow": {
+        "type": "string",
+        "description": "Hour which user chose for the appointment in format of hh:mm A."
+      },
+      "EndRow": {
+        "type": "string",
+        "description": "Hour which user chose for the appointment plus duration of appointment in format of hh:mm A."
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "motoristId",
+      "EndRow",
+      "StartRow",
+      "AppointmentDate",
+      "StudentID",
+      "classId",
+      "SysID"
+    ]
+  }
+}
+{
+  "name": "cancelAppointment",
+  "description": "Reschedules appointment for user.",
+  "strict": true,
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "StudentID": {
+        "type": "string",
+        "description": "Id of the student."
+      },
+      "SysID": {
+        "type": "number",
+        "description": "Id of the appointment."
+      },
+      "CancelReason": {
+        "type": "string",
+        "description": "Reason which student provided for cancellation"
+      },
+      "ModReason": {
+        "type": "string",
+        "description": "Defaults to \"Requested by student\""
+      },
+      "Charge": {
+        "type": "string",
+        "description": "Defaults to \"N\". But if lesson is within 24 hour. Make sure to warn a student that they will be charged and if they confirm lesson to be cancelled value should be \"Y\""
+      }
+    },
+    "additionalProperties": false,
+    "required": [
+      "SysID",
+      "Charge",
+      "ModReason",
+      "CancelReason",
+      "StudentID"
+    ]
+  }
+}

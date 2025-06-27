@@ -1,0 +1,744 @@
+# ===== ADVANCED DEPLOYMENT & DEVOPS AUTOMATION =====
+# This comprehensive automation setup ensures Ferrari Driving School's SMS assistant
+# deploys reliably, scales automatically, and maintains high availability
+
+# ===== GITHUB ACTIONS CI/CD PIPELINE =====
+# .github/workflows/deploy.yml
+name: Ferrari SMS Assistant Deployment
+on:
+  push:
+    branches: [main, staging]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '18'
+  RAILWAY_PROJECT_ID: ${{ secrets.RAILWAY_PROJECT_ID }}
+  
+jobs:
+  # ===== TESTING AND QUALITY ASSURANCE =====
+  test:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: ferrari_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run security audit
+        run: npm audit --audit-level moderate
+
+      - name: Run unit tests
+        run: npm run test:unit
+        env:
+          NODE_ENV: test
+          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql://postgres:testpassword@localhost:5432/ferrari_test
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql://postgres:testpassword@localhost:5432/ferrari_test
+          # Mock API endpoints for testing
+          FERRARI_CRM_BASE_URL: http://localhost:3001/mock-api
+          ANTHROPIC_API_KEY: test-key
+
+      - name: Run load tests
+        run: npm run test:load
+        env:
+          NODE_ENV: test
+
+      - name: Generate test coverage report
+        run: npm run test:coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+
+  # ===== SECURITY SCANNING =====
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Snyk security scan
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run CodeQL analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+
+  # ===== STAGING DEPLOYMENT =====
+  deploy-staging:
+    needs: [test, security]
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Railway Staging
+        uses: railway/deploy@v0.1.1
+        with:
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ferrari-sms-staging
+          environment: staging
+
+      - name: Wait for deployment
+        run: sleep 60
+
+      - name: Run smoke tests against staging
+        run: npm run test:smoke
+        env:
+          TEST_BASE_URL: ${{ secrets.STAGING_URL }}
+          TEST_PHONE_NUMBER: ${{ secrets.TEST_PHONE_NUMBER }}
+
+      - name: Notify team of staging deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "Ferrari SMS Assistant staging deployment completed",
+              attachments: [{
+                color: 'good',
+                fields: [{
+                  title: 'Environment',
+                  value: 'Staging',
+                  short: true
+                }, {
+                  title: 'Version',
+                  value: '${{ github.sha }}',
+                  short: true
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  # ===== PRODUCTION DEPLOYMENT =====
+  deploy-production:
+    needs: [test, security]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create deployment
+        id: deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'production',
+              description: 'Production deployment of Ferrari SMS Assistant'
+            });
+            return deployment.data.id;
+
+      - name: Deploy to Railway Production
+        uses: railway/deploy@v0.1.1
+        with:
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ferrari-sms-production
+          environment: production
+
+      - name: Wait for deployment stabilization
+        run: sleep 90
+
+      - name: Run comprehensive health checks
+        run: npm run test:health-check
+        env:
+          HEALTH_CHECK_URL: ${{ secrets.PRODUCTION_URL }}
+          HEALTH_CHECK_TIMEOUT: 30000
+
+      - name: Update deployment status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.result }},
+              state: 'success',
+              environment_url: '${{ secrets.PRODUCTION_URL }}'
+            });
+
+      - name: Notify team of production deployment
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: "🚀 Ferrari SMS Assistant PRODUCTION deployment successful!",
+              attachments: [{
+                color: 'good',
+                fields: [{
+                  title: 'Environment',
+                  value: 'Production',
+                  short: true
+                }, {
+                  title: 'Version',
+                  value: '${{ github.sha }}',
+                  short: true
+                }, {
+                  title: 'Deployed by',
+                  value: '${{ github.actor }}',
+                  short: true
+                }]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+---
+
+# ===== DOCKER CONFIGURATION FOR ADVANCED DEPLOYMENT =====
+# Dockerfile
+FROM node:18-alpine AS builder
+
+# Create app directory
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# ===== PRODUCTION IMAGE =====
+FROM node:18-alpine AS production
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S ferrari -u 1001
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy built application
+COPY --from=builder --chown=ferrari:nodejs /usr/src/app/node_modules ./node_modules
+COPY --chown=ferrari:nodejs . .
+
+# Security: Remove unnecessary packages and files
+RUN rm -rf .git .github .vscode docs tests
+
+# Switch to non-root user
+USER ferrari
+
+# Expose port
+EXPOSE 3000
+
+# Health check for container orchestration
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node health-check.js || exit 1
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application
+CMD ["node", "src/app.js"]
+
+---
+
+# ===== KUBERNETES CONFIGURATION FOR SCALING =====
+# k8s/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ferrari-sms-assistant
+  labels:
+    app: ferrari-sms-assistant
+    version: v1
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ferrari-sms-assistant
+  template:
+    metadata:
+      labels:
+        app: ferrari-sms-assistant
+        version: v1
+    spec:
+      containers:
+      - name: ferrari-sms-assistant
+        image: ferrari-sms-assistant:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: ferrari-secrets
+              key: redis-url
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: ferrari-secrets
+              key: database-url
+        - name: ANTHROPIC_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: ferrari-secrets
+              key: anthropic-api-key
+        - name: TWILIO_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: ferrari-secrets
+              key: twilio-auth-token
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]
+
+---
+
+# ===== AUTO-SCALING CONFIGURATION =====
+# k8s/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ferrari-sms-assistant-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ferrari-sms-assistant
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+
+---
+
+# ===== MONITORING AND ALERTING =====
+# monitoring/prometheus-config.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "ferrari-alerts.yml"
+
+scrape_configs:
+  - job_name: 'ferrari-sms-assistant'
+    static_configs:
+      - targets: ['ferrari-sms-assistant:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+
+---
+
+# monitoring/ferrari-alerts.yml
+groups:
+- name: ferrari-sms-assistant
+  rules:
+  # High error rate alert
+  - alert: HighErrorRate
+    expr: rate(ferrari_http_requests_total{status=~"5.."}[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate detected"
+      description: "Ferrari SMS Assistant is experiencing {{ $value }} errors per second"
+
+  # High response time alert
+  - alert: HighResponseTime
+    expr: histogram_quantile(0.95, rate(ferrari_http_request_duration_seconds_bucket[5m])) > 2
+    for: 3m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High response time detected"
+      description: "95th percentile response time is {{ $value }} seconds"
+
+  # SMS delivery failure alert
+  - alert: SMSDeliveryFailures
+    expr: rate(ferrari_sms_delivery_failures_total[5m]) > 0.05
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "SMS delivery failures detected"
+      description: "{{ $value }} SMS messages per second are failing to deliver"
+
+  # Low memory alert
+  - alert: LowMemory
+    expr: (ferrari_memory_usage_bytes / ferrari_memory_limit_bytes) > 0.9
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage"
+      description: "Memory usage is {{ $value | humanizePercentage }}"
+
+  # Redis connection failure
+  - alert: RedisConnectionFailure
+    expr: ferrari_redis_connection_status == 0
+    for: 30s
+    labels:
+      severity: critical
+    annotations:
+      summary: "Redis connection failed"
+      description: "Cannot connect to Redis cache"
+
+---
+
+# ===== BACKUP AND DISASTER RECOVERY =====
+# backup/backup-script.sh
+#!/bin/bash
+
+# Ferrari Driving School SMS Assistant Backup Script
+# This script creates comprehensive backups of all system components
+
+set -euo pipefail
+
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="/backups/ferrari-sms-$TIMESTAMP"
+S3_BUCKET="ferrari-backups"
+
+echo "Starting backup process at $(date)"
+
+# Create backup directory
+mkdir -p "$BACKUP_DIR"
+
+# ===== DATABASE BACKUP =====
+echo "Backing up PostgreSQL database..."
+pg_dump "$DATABASE_URL" | gzip > "$BACKUP_DIR/database.sql.gz"
+
+# ===== REDIS BACKUP =====
+echo "Backing up Redis data..."
+redis-cli --rdb "$BACKUP_DIR/redis-dump.rdb"
+
+# ===== CONFIGURATION BACKUP =====
+echo "Backing up configuration files..."
+cp -r /app/config "$BACKUP_DIR/"
+
+# ===== CONVERSATION LOGS BACKUP =====
+echo "Backing up conversation logs..."
+tar -czf "$BACKUP_DIR/conversation-logs.tar.gz" /app/logs/
+
+# ===== UPLOAD TO S3 =====
+echo "Uploading backup to S3..."
+aws s3 cp "$BACKUP_DIR" "s3://$S3_BUCKET/$TIMESTAMP/" --recursive
+
+# ===== CLEANUP OLD BACKUPS =====
+echo "Cleaning up old backups..."
+# Keep last 30 days of backups
+find /backups -name "ferrari-sms-*" -mtime +30 -exec rm -rf {} \;
+
+# Remove backups older than 90 days from S3
+aws s3 ls "s3://$S3_BUCKET/" | while read -r line; do
+    backup_date=$(echo $line | awk '{print $2}' | cut -d/ -f1)
+    if [[ $backup_date < $(date -d '90 days ago' +%Y%m%d_%H%M%S) ]]; then
+        aws s3 rm "s3://$S3_BUCKET/$backup_date/" --recursive
+    fi
+done
+
+echo "Backup completed successfully at $(date)"
+
+# ===== SEND NOTIFICATION =====
+curl -X POST "$SLACK_WEBHOOK_URL" \
+    -H 'Content-type: application/json' \
+    --data "{\"text\":\"✅ Ferrari SMS Assistant backup completed successfully ($TIMESTAMP)\"}"
+
+---
+
+# ===== AUTOMATED RECOVERY SCRIPT =====
+# recovery/restore-system.sh
+#!/bin/bash
+
+# Ferrari Driving School SMS Assistant Recovery Script
+# This script performs automated system recovery from backups
+
+set -euo pipefail
+
+BACKUP_TIMESTAMP=$1
+S3_BUCKET="ferrari-backups"
+RESTORE_DIR="/tmp/restore-$BACKUP_TIMESTAMP"
+
+if [ -z "$BACKUP_TIMESTAMP" ]; then
+    echo "Usage: $0 <backup_timestamp>"
+    echo "Example: $0 20241127_143022"
+    exit 1
+fi
+
+echo "Starting recovery process for backup: $BACKUP_TIMESTAMP"
+
+# ===== DOWNLOAD BACKUP FROM S3 =====
+echo "Downloading backup from S3..."
+mkdir -p "$RESTORE_DIR"
+aws s3 cp "s3://$S3_BUCKET/$BACKUP_TIMESTAMP/" "$RESTORE_DIR/" --recursive
+
+# ===== RESTORE DATABASE =====
+echo "Restoring PostgreSQL database..."
+gunzip -c "$RESTORE_DIR/database.sql.gz" | psql "$DATABASE_URL"
+
+# ===== RESTORE REDIS =====
+echo "Restoring Redis data..."
+redis-cli --rdb "$RESTORE_DIR/redis-dump.rdb"
+redis-cli BGREWRITEAOF
+
+# ===== RESTORE CONFIGURATION =====
+echo "Restoring configuration files..."
+cp -r "$RESTORE_DIR/config/" /app/
+
+# ===== RESTART SERVICES =====
+echo "Restarting application services..."
+kubectl rollout restart deployment/ferrari-sms-assistant
+
+# ===== VERIFY RECOVERY =====
+echo "Verifying system recovery..."
+sleep 30
+
+# Check application health
+if curl -f "$PRODUCTION_URL/health" > /dev/null 2>&1; then
+    echo "✅ Application health check passed"
+else
+    echo "❌ Application health check failed"
+    exit 1
+fi
+
+# Check database connectivity
+if psql "$DATABASE_URL" -c "SELECT 1;" > /dev/null 2>&1; then
+    echo "✅ Database connectivity verified"
+else
+    echo "❌ Database connectivity failed"
+    exit 1
+fi
+
+# Check Redis connectivity
+if redis-cli ping | grep -q PONG; then
+    echo "✅ Redis connectivity verified"
+else
+    echo "❌ Redis connectivity failed"
+    exit 1
+fi
+
+echo "🎉 System recovery completed successfully!"
+
+# ===== SEND NOTIFICATION =====
+curl -X POST "$SLACK_WEBHOOK_URL" \
+    -H 'Content-type: application/json' \
+    --data "{\"text\":\"🔄 Ferrari SMS Assistant recovery completed successfully from backup $BACKUP_TIMESTAMP\"}"
+
+---
+
+# ===== PERFORMANCE OPTIMIZATION SCRIPT =====
+# scripts/optimize-performance.js
+const fs = require('fs');
+const path = require('path');
+
+class PerformanceOptimizer {
+  constructor() {
+    this.metrics = {};
+    this.optimizations = [];
+  }
+
+  async analyzeAndOptimize() {
+    console.log('🔍 Analyzing system performance...');
+    
+    // Analyze different performance aspects
+    await Promise.all([
+      this.analyzeRedisUsage(),
+      this.analyzeDatabaseQueries(),
+      this.analyzeAPIResponseTimes(),
+      this.analyzeMemoryUsage(),
+      this.analyzeCacheHitRates()
+    ]);
+
+    // Generate optimization recommendations
+    this.generateOptimizations();
+    
+    // Apply safe optimizations automatically
+    await this.applySafeOptimizations();
+    
+    // Report results
+    this.generateOptimizationReport();
+  }
+
+  async analyzeRedisUsage() {
+    // Analyze Redis cache patterns and suggest optimizations
+    const redisInfo = await this.redis.info();
+    const memoryUsage = redisInfo.used_memory_human;
+    const hitRate = redisInfo.keyspace_hits / (redisInfo.keyspace_hits + redisInfo.keyspace_misses);
+    
+    this.metrics.redis = { memoryUsage, hitRate };
+    
+    if (hitRate < 0.8) {
+      this.optimizations.push({
+        type: 'redis',
+        priority: 'high',
+        description: 'Cache hit rate is low. Consider adjusting TTL values or cache keys.',
+        autoApply: false
+      });
+    }
+  }
+
+  async analyzeDatabaseQueries() {
+    // Analyze database query performance
+    const slowQueries = await this.database.query(`
+      SELECT query, mean_time, calls 
+      FROM pg_stat_statements 
+      WHERE mean_time > 1000 
+      ORDER BY mean_time DESC 
+      LIMIT 10
+    `);
+    
+    this.metrics.database = { slowQueries: slowQueries.rows };
+    
+    if (slowQueries.rows.length > 0) {
+      this.optimizations.push({
+        type: 'database',
+        priority: 'medium',
+        description: 'Slow database queries detected. Consider adding indexes or optimizing queries.',
+        autoApply: false,
+        details: slowQueries.rows
+      });
+    }
+  }
+
+  generateOptimizationReport() {
+    const report = {
+      timestamp: new Date().toISOString(),
+      metrics: this.metrics,
+      optimizations: this.optimizations,
+      appliedOptimizations: this.appliedOptimizations || []
+    };
+    
+    fs.writeFileSync(
+      path.join(__dirname, '../reports/performance-optimization.json'),
+      JSON.stringify(report, null, 2)
+    );
+    
+    console.log('📊 Performance optimization report generated');
+    console.log(`📈 Found ${this.optimizations.length} optimization opportunities`);
+    console.log(`✅ Applied ${this.appliedOptimizations?.length || 0} safe optimizations`);
+  }
+}
+
+// Run performance optimization
+if (require.main === module) {
+  const optimizer = new PerformanceOptimizer();
+  optimizer.analyzeAndOptimize().catch(console.error);
+}
+
+module.exports = PerformanceOptimizer;

@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Architecture Blueprint</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f3460 0%, #16537e 50%, #0f3460 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .architecture-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .layer-tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 5px;
+        }
+        
+        .layer-tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .layer-tab:hover {
+            background: #e9ecef;
+        }
+        
+        .layer-tab.active {
+            background: #16537e;
+            color: white;
+        }
+        
+        .architecture-layer {
+            display: none;
+            min-height: 600px;
+        }
+        
+        .architecture-layer.active {
+            display: block;
+        }
+        
+        .layer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .component-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-top: 5px solid;
+            transition: transform 0.3s ease;
+        }
+        
+        .component-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .component-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .component-description {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        
+        .tech-stack {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+        
+        .messaging-layer { border-top-color: #e74c3c; }
+        .api-layer { border-top-color: #3498db; }
+        .orchestration-layer { border-top-color: #27ae60; }
+        .data-layer { border-top-color: #f39c12; }
+        .security-layer { border-top-color: #9b59b6; }
+        .monitoring-layer { border-top-color: #34495e; }
+        
+        .data-flow {
+            position: relative;
+            height: 500px;
+            background: linear-gradient(to bottom, #ecf0f1, #bdc3c7);
+            border-radius: 15px;
+            margin: 30px 0;
+            overflow: hidden;
+        }
+        
+        .flow-component {
+            position: absolute;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 3px solid;
+            text-align: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .flow-component:hover {
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        
+        .sms-gateway {
+            border-color: #e74c3c;
+            top: 20px;
+            left: 50px;
+            width: 120px;
+        }
+        
+        .webhook-router {
+            border-color: #3498db;
+            top: 20px;
+            left: 250px;
+            width: 120px;
+        }
+        
+        .rate-limiter {
+            border-color: #f39c12;
+            top: 20px;
+            left: 450px;
+            width: 120px;
+        }
+        
+        .ai-orchestrator {
+            border-color: #27ae60;
+            top: 150px;
+            left: 150px;
+            width: 200px;
+            height: 80px;
+        }
+        
+        .cache-layer {
+            border-color: #e67e22;
+            top: 150px;
+            left: 450px;
+            width: 120px;
+        }
+        
+        .crm-api {
+            border-color: #9b59b6;
+            top: 280px;
+            left: 50px;
+            width: 120px;
+        }
+        
+        .database {
+            border-color: #1abc9c;
+            top: 280px;
+            left: 250px;
+            width: 120px;
+        }
+        
+        .queue-system {
+            border-color: #34495e;
+            top: 280px;
+            left: 450px;
+            width: 120px;
+        }
+        
+        .response-handler {
+            border-color: #e74c3c;
+            top: 410px;
+            left: 250px;
+            width: 120px;
+        }
+        
+        .flow-line {
+            position: absolute;
+            background: #3498db;
+            height: 3px;
+            border-radius: 2px;
+        }
+        
+        .sequence-diagram {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .sequence-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .sequence-step {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 5px solid #3498db;
+        }
+        
+        .step-number {
+            background: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        
+        .step-description {
+            flex: 1;
+        }
+        
+        .step-timing {
+            color: #666;
+            font-size: 0.9em;
+            margin-left: 15px;
+            flex-shrink: 0;
+        }
+        
+        .deployment-options {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .deployment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .deployment-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 5px solid;
+        }
+        
+        .deployment-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .cloud-simple { border-left-color: #27ae60; }
+        .cloud-scalable { border-left-color: #3498db; }
+        .on-premise { border-left-color: #e67e22; }
+        .hybrid { border-left-color: #9b59b6; }
+        
+        .cost-breakdown {
+            background: linear-gradient(135deg, #16537e, #0f3460);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .cost-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .cost-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .cost-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .implementation-checklist {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .checklist-phases {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .phase-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+        }
+        
+        .phase-title {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.1em;
+        }
+        
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 5px 0;
+        }
+        
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid #3498db;
+            border-radius: 3px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .checkbox.checked {
+            background: #3498db;
+            color: white;
+        }
+        
+        .security-framework {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .security-layers {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .security-layer-item {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            position: relative;
+        }
+        
+        .security-layer-item::before {
+            content: '🔒';
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 1.5em;
+        }
+        
+        .layer-name {
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .layer-details {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SMS AI Assistant: Technical Architecture Blueprint</h1>
+        
+        <div class="architecture-container">
+            <h2 style="text-align: center; margin-bottom: 20px;">System Architecture Layers</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">Click through each layer to understand the complete technical stack</p>
+            
+            <div class="layer-tabs">
+                <div class="layer-tab active" onclick="showLayer('messaging')">Messaging Layer</div>
+                <div class="layer-tab" onclick="showLayer('api')">API Gateway</div>
+                <div class="layer-tab" onclick="showLayer('orchestration')">AI Orchestration</div>
+                <div class="layer-tab" onclick="showLayer('data')">Data Layer</div>
+                <div class="layer-tab" onclick="showLayer('security')">Security</div>
+                <div class="layer-tab" onclick="showLayer('monitoring')">Monitoring</div>
+            </div>
+            
+            <div id="messaging-layer" class="architecture-layer active">
+                <h3>Messaging & Communication Layer</h3>
+                <div class="layer-grid">
+                    <div class="component-card messaging-layer">
+                        <div class="component-title">📱 Twilio SMS Gateway</div>
+                        <div class="component-description">
+                            Primary SMS interface. Handles incoming/outgoing messages, phone number validation, and delivery receipts.
+                        </div>
+                        <div class="tech-stack">
+                            • Twilio Programmable SMS<br>
+                            • Webhook endpoints<br>
+                            • Phone number verification<br>
+                            • Message status tracking
+                        </div>
+                    </div>
+                    
+                    <div class="component-card messaging-layer">
+                        <div class="component-title">🔄 Webhook Router</div>
+                        <div class="component-description">
+                            Routes incoming messages to appropriate handlers. Manages conversation state and session tracking.
+                        </div>
+                        <div class="tech-stack">
+                            • Express.js router<br>
+                            • Session management<br>
+                            • Message validation<br>
+                            • Error handling
+                        </div>
+                    </div>
+                    
+                    <div class="component-card messaging-layer">
+                        <div class="component-title">⚡ Rate Limiter</div>
+                        <div class="component-description">
+                            Prevents spam and abuse. Implements per-user and global rate limits for message processing.
+                        </div>
+                        <div class="tech-stack">
+                            • Redis rate limiting<br>
+                            • Per-user quotas<br>
+                            • Spam detection<br>
+                            • Blocking mechanisms
+                        </div>
+                    </div>
+                    
+                    <div class="component-card messaging-layer">
+                        <div class="component-title">🌐 Multi-Channel Bridge</div>
+                        <div class="component-description">
+                            Future-ready component for WhatsApp, iMessage, and web chat integration. Normalizes messages across platforms.
+                        </div>
+                        <div class="tech-stack">
+                            • WhatsApp Business API<br>
+                            • iMessage for Business<br>
+                            • Web chat widget<br>
+                            • Message format normalization
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="api-layer" class="architecture-layer">
+                <h3>API Gateway & Integration Layer</h3>
+                <div class="layer-grid">
+                    <div class="component-card api-layer">
+                        <div class="component-title">🏢 Ferrari CRM Connector</div>
+                        <div class="component-description">
+                            Dedicated service for communicating with Ferrari's existing REST API. Handles authentication and retry logic.
+                        </div>
+                        <div class="tech-stack">
+                            • REST API client<br>
+                            • Connection pooling<br>
+                            • Automatic retries<br>
+                            • Error transformation
+                        </div>
+                    </div>
+                    
+                    <div class="component-card api-layer">
+                        <div class="component-title">🔐 API Authentication</div>
+                        <div class="component-description">
+                            Manages API keys, JWT tokens, and secure communication with external services including AI models.
+                        </div>
+                        <div class="tech-stack">
+                            • JWT token management<br>
+                            • API key rotation<br>
+                            • OAuth 2.0 flows<br>
+                            • Secure storage
+                        </div>
+                    </div>
+                    
+                    <div class="component-card api-layer">
+                        <div class="component-title">📊 Response Transformer</div>
+                        <div class="component-description">
+                            Converts CRM API responses into user-friendly messages. Handles data formatting and error translation.
+                        </div>
+                        <div class="tech-stack">
+                            • Data transformation<br>
+                            • Error mapping<br>
+                            • Response caching<br>
+                            • Format validation
+                        </div>
+                    </div>
+                    
+                    <div class="component-card api-layer">
+                        <div class="component-title">⚖️ Load Balancer</div>
+                        <div class="component-description">
+                            Distributes API calls across multiple instances and implements circuit breaker patterns for reliability.
+                        </div>
+                        <div class="tech-stack">
+                            • Nginx load balancing<br>
+                            • Health checks<br>
+                            • Circuit breakers<br>
+                            • Failover logic
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="orchestration-layer" class="architecture-layer">
+                <h3>AI Orchestration & Conversation Management</h3>
+                <div class="layer-grid">
+                    <div class="component-card orchestration-layer">
+                        <div class="component-title">🧠 LangGraph Orchestrator</div>
+                        <div class="component-description">
+                            Core conversation engine. Manages multi-step flows, maintains context, and orchestrates AI model calls.
+                        </div>
+                        <div class="tech-stack">
+                            • LangGraph state machines<br>
+                            • Conversation context<br>
+                            • Flow control logic<br>
+                            • Error recovery
+                        </div>
+                    </div>
+                    
+                    <div class="component-card orchestration-layer">
+                        <div class="component-title">🎯 Intent Classification</div>
+                        <div class="component-description">
+                            Determines user intent from messages. Routes to appropriate conversation flows and API calls.
+                        </div>
+                        <div class="tech-stack">
+                            • Claude 3 Haiku<br>
+                            • Intent confidence scoring<br>
+                            • Fallback mechanisms<br>
+                            • Context awareness
+                        </div>
+                    </div>
+                    
+                    <div class="component-card orchestration-layer">
+                        <div class="component-title">🔄 Background Processor</div>
+                        <div class="component-description">
+                            Handles long-running tasks like availability checking while keeping conversation responsive.
+                        </div>
+                        <div class="tech-stack">
+                            • Bull Queue (Redis)<br>
+                            • Async job processing<br>
+                            • Progress tracking<br>
+                            • Result callbacks
+                        </div>
+                    </div>
+                    
+                    <div class="component-card orchestration-layer">
+                        <div class="component-title">💬 Context Manager</div>
+                        <div class="component-description">
+                            Maintains conversation history, user preferences, and session state across multiple interactions.
+                        </div>
+                        <div class="tech-stack">
+                            • Redis session store<br>
+                            • Context serialization<br>
+                            • Memory management<br>
+                            • State persistence
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="data-layer" class="architecture-layer">
+                <h3>Data Storage & Caching Layer</h3>
+                <div class="layer-grid">
+                    <div class="component-card data-layer">
+                        <div class="component-title">⚡ Redis Cache</div>
+                        <div class="component-description">
+                            High-performance caching for student info, appointment data, and frequently asked questions.
+                        </div>
+                        <div class="tech-stack">
+                            • Student profile cache (1hr TTL)<br>
+                            • Appointment cache (15min TTL)<br>
+                            • FAQ responses (24hr TTL)<br>
+                            • Session data storage
+                        </div>
+                    </div>
+                    
+                    <div class="component-card data-layer">
+                        <div class="component-title">🗄️ PostgreSQL Database</div>
+                        <div class="component-description">
+                            Primary database for conversation logs, analytics, and system configuration data.
+                        </div>
+                        <div class="tech-stack">
+                            • Conversation history<br>
+                            • User preferences<br>
+                            • System configuration<br>
+                            • Analytics data
+                        </div>
+                    </div>
+                    
+                    <div class="component-card data-layer">
+                        <div class="component-title">📊 Message Queue</div>
+                        <div class="component-description">
+                            Reliable message processing queue for handling high-volume periods and ensuring delivery.
+                        </div>
+                        <div class="tech-stack">
+                            • Redis Bull Queue<br>
+                            • Message persistence<br>
+                            • Dead letter queues<br>
+                            • Priority handling
+                        </div>
+                    </div>
+                    
+                    <div class="component-card data-layer">
+                        <div class="component-title">🔄 Data Sync Service</div>
+                        <div class="component-description">
+                            Keeps local caches synchronized with Ferrari's CRM system. Handles data consistency.
+                        </div>
+                        <div class="tech-stack">
+                            • Scheduled sync jobs<br>
+                            • Change detection<br>
+                            • Conflict resolution<br>
+                            • Backup procedures
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="security-layer" class="architecture-layer">
+                <h3>Security & Compliance Layer</h3>
+                <div class="layer-grid">
+                    <div class="component-card security-layer">
+                        <div class="component-title">🔐 Authentication Service</div>
+                        <div class="component-description">
+                            Multi-factor authentication using driver's license number and date of birth verification.
+                        </div>
+                        <div class="tech-stack">
+                            • Driver license validation<br>
+                            • DOB backup verification<br>
+                            • Phone number verification<br>
+                            • Session management
+                        </div>
+                    </div>
+                    
+                    <div class="component-card security-layer">
+                        <div class="component-title">🛡️ Data Encryption</div>
+                        <div class="component-description">
+                            End-to-end encryption for all sensitive student data and conversation logs.
+                        </div>
+                        <div class="tech-stack">
+                            • AES-256 encryption<br>
+                            • TLS/SSL in transit<br>
+                            • Key management<br>
+                            • PII data masking
+                        </div>
+                    </div>
+                    
+                    <div class="component-card security-layer">
+                        <div class="component-title">🔍 Fraud Detection</div>
+                        <div class="component-description">
+                            Monitors for suspicious activity, spam, and potential security threats.
+                        </div>
+                        <div class="tech-stack">
+                            • Anomaly detection<br>
+                            • Rate limit enforcement<br>
+                            • IP blocking<br>
+                            • Behavioral analysis
+                        </div>
+                    </div>
+                    
+                    <div class="component-card security-layer">
+                        <div class="component-title">📋 Compliance Framework</div>
+                        <div class="component-description">
+                            Ensures FERPA compliance and educational data protection standards.
+                        </div>
+                        <div class="tech-stack">
+                            • FERPA compliance<br>
+                            • Data retention policies<br>
+                            • Audit logging<br>
+                            • Privacy controls
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="monitoring-layer" class="architecture-layer">
+                <h3>Monitoring & Analytics Layer</h3>
+                <div class="layer-grid">
+                    <div class="component-card monitoring-layer">
+                        <div class="component-title">📊 Performance Monitoring</div>
+                        <div class="component-description">
+                            Real-time monitoring of system performance, response times, and resource utilization.
+                        </div>
+                        <div class="tech-stack">
+                            • Response time tracking<br>
+                            • Resource monitoring<br>
+                            • Error rate tracking<br>
+                            • Uptime monitoring
+                        </div>
+                    </div>
+                    
+                    <div class="component-card monitoring-layer">
+                        <div class="component-title">📈 Analytics Dashboard</div>
+                        <div class="component-description">
+                            Business intelligence dashboard showing conversation metrics, booking rates, and user satisfaction.
+                        </div>
+                        <div class="tech-stack">
+                            • Conversation analytics<br>
+                            • Booking conversion rates<br>
+                            • User satisfaction scores<br>
+                            • Business metrics
+                        </div>
+                    </div>
+                    
+                    <div class="component-card monitoring-layer">
+                        <div class="component-title">🚨 Alert System</div>
+                        <div class="component-description">
+                            Automated alerting for system issues, high error rates, and business-critical failures.
+                        </div>
+                        <div class="tech-stack">
+                            • Slack notifications<br>
+                            • Email alerts<br>
+                            • SMS emergency alerts<br>
+                            • Escalation policies
+                        </div>
+                    </div>
+                    
+                    <div class="component-card monitoring-layer">
+                        <div class="component-title">📝 Logging Service</div>
+                        <div class="component-description">
+                            Centralized logging for debugging, compliance, and system optimization.
+                        </div>
+                        <div class="tech-stack">
+                            • Structured logging<br>
+                            • Log aggregation<br>
+                            • Search capabilities<br>
+                            • Retention policies
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sequence-diagram">
+            <h2 style="text-align: center; margin-bottom: 20px;">Message Processing Sequence</h2>
+            <p style="text-align: center; color: #666; margin-bottom: 30px;">Step-by-step flow of a typical lesson booking conversation</p>
+            
+            <div class="sequence-steps">
+                <div class="sequence-step">
+                    <div class="step-number">1</div>
+                    <div class="step-description">
+                        <strong>SMS Received:</strong> Student sends "I want to book a lesson" to Twilio number
+                    </div>
+                    <div class="step-timing">~50ms</div>
+                </div>
+                
+                <div class="sequence-step">
+                    <div class="step-number">2</div>
+                    <div class="step-description">
+                        <strong>Webhook Processing:</strong> Twilio forwards message to webhook router, rate limiter validates request
+                    </div>
+                    <div class="step-timing">~100ms</div>
+                </div>
+                
+                <div class="sequence-step">
+                    <div class="step-number">3</div>
+                    <div class="step-description">
+                        <strong>Authentication Check:</strong> System checks if phone number exists in session cache or needs license verification
+                    </div>
+                    <div class="step-timing">~50ms</div>
+                </div>
+                
+                <div class="sequence-step">
+                    <div class="step-number">4</div>
+                    <div class="step-description">
+                        <strong>Intent Classification:</strong> Claude 3 Haiku identifies "book lesson" intent and extracts relevant parameters
+                    </div>
+                    <div class="step-timing">~200ms</div>
+                </div>
+                
+                <div class="sequence-step">
+                    <div class="step-number">5</div>
+                    <div class="step-description">
+                        <strong>Background Processing:</strong> While gathering lesson details, system pre-loads instructor availability data
+                    </div>
+                    <div class="step-timing">~300ms</div>
+                </div>
+                
+                <div class="sequence-step">
+                    <div class="step-number">6</div>
+                    <div class="step-description">
+                        <strong>CRM Integration:</strong> Calls getStudentInfo and getInstructorsOpenSlots APIs in parallel
+                    </div>
+                    <div class="step-timing">~400ms</div>
+                </div>
+                
+                <div class="sequence-step">
+                    <div class="step-number">7</div>
+                    <div class="step-description">
+                        <strong>Response Generation:</strong> AI formats available options into user-friendly message
+                    </div>
+                    <div class="step-timing">~150ms</div>
+                </div>
+                
+                <div class="sequence-step">
+                    <div class="step-number">8</div>
+                    <div class="step-description">
+                        <strong>SMS Response:</strong> Formatted message sent back to student via Twilio with available time slots
+                    </div>
+                    <div class="step-timing">~100ms</div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 8px;">
+                <strong>Total Response Time: ~1.35 seconds</strong> (vs 3-5 seconds with current setup)
+            </div>
+        </div>
+        
+        <div class="deployment-options">
+            <h2 style="text-align: center; margin-bottom: 20px;">Deployment Architecture Options</h2>
+            
+            <div class="deployment-grid">
+                <div class="deployment-card cloud-simple">
+                    <div class="deployment-title">☁️ Simple Cloud (Recommended Start)</div>
+                    <p><strong>Platform:</strong> Railway or Heroku</p>
+                    <p><strong>Best for:</strong> Quick deployment, minimal DevOps</p>
+                    <ul>
+                        <li>Node.js app on Railway</li>
+                        <li>Redis Cloud for caching</li>
+                        <li>PostgreSQL managed database</li>
+                        <li>Automated deployments</li>
+                    </ul>
+                    <p><strong>Monthly Cost:</strong> $50-80</p>
+                </div>
+                
+                <div class="deployment-card cloud-scalable">
+                    <div class="deployment-title">🚀 Scalable Cloud (Growth Phase)</div>
+                    <p><strong>Platform:</strong> AWS ECS or Google Cloud Run</p>
+                    <p><strong>Best for:</strong> High availability, auto-scaling</p>
+                    <ul>
+                        <li>Containerized microservices</li>
+                        <li>Load balancing</li>
+                        <li>Auto-scaling capabilities</li>
+                        <li>Managed Redis and PostgreSQL</li>
+                    </ul>
+                    <p><strong>Monthly Cost:</strong> $150-300</p>
+                </div>
+                
+                <div class="deployment-card on-premise">
+                    <div class="deployment-title">🏢 On-Premise (Enterprise)</div>
+                    <p><strong>Platform:</strong> Your own servers</p>
+                    <p><strong>Best for:</strong> Maximum control, compliance</p>
+                    <ul>
+                        <li>Full data control</li>
+                        <li>Custom security policies</li>
+                        <li>No vendor lock-in</li>
+                        <li>Higher maintenance overhead</li>
+                    </ul>
+                    <p><strong>Monthly Cost:</strong> $200-500 (plus infrastructure)</p>
+                </div>
+                
+                <div class="deployment-card hybrid">
+                    <div class="deployment-title">🔄 Hybrid (Future-Proof)</div>
+                    <p><strong>Platform:</strong> Cloud + On-premise</p>
+                    <p><strong>Best for:</strong> Sensitive data compliance</p>
+                    <ul>
+                        <li>AI processing in cloud</li>
+                        <li>Student data on-premise</li>
+                        <li>Best of both worlds</li>
+                        <li>Complex architecture</li>
+                    </ul>
+                    <p><strong>Monthly Cost:</strong> $300-600</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="cost-breakdown">
+            <h2 style="text-align: center; margin-bottom: 20px;">Monthly Operating Costs</h2>
+            <p style="text-align: center; margin-bottom: 30px;">Detailed breakdown for 3,000 messages/month at Ferrari Driving School</p>
+            
+            <div class="cost-grid">
+                <div class="cost-card">
+                    <div class="cost-title">💬 AI Models</div>
+                    <div class="cost-item">
+                        <span>Claude 3 Haiku (90%)</span>
+                        <span>$12</span>
+                    </div>
+                    <div class="cost-item">
+                        <span>GPT-4o Mini (10%)</span>
+                        <span>$3</span>
+                    </div>
+                    <div class="cost-item">
+                        <span><strong>Total AI Costs</strong></span>
+                        <span><strong>$15</strong></span>
+                    </div>
+                </div>
+                
+                <div class="cost-card">
+                    <div class="cost-title">📱 Communication</div>
+                    <div class="cost-item">
+                        <span>Twilio SMS (3,000 msgs)</span>
+                        <span>$22</span>
+                    </div>
+                    <div class="cost-item">
+                        <span>WhatsApp Business API</span>
+                        <span>$8</span>
+                    </div>
+                    <div class="cost-item">
+                        <span><strong>Total Messaging</strong></span>
+                        <span><strong>$30</strong></span>
+                    </div>
+                </div>
+                
+                <div class="cost-card">
+                    <div class="cost-title">🛠️ Infrastructure</div>
+                    <div class="cost-item">
+                        <span>Railway hosting</span>
+                        <span>$25</span>
+                    </div>
+                    <div class="cost-item">
+                        <span>Redis Cloud</span>
+                        <span>$15</span>
+                    </div>
+                    <div class="cost-item">
+                        <span>PostgreSQL</span>
+                        <span>$20</span>
+                    </div>
+                    <div class="cost-item">
+                        <span><strong>Total Infrastructure</strong></span>
+                        <span><strong>$60</strong></span>
+                    </div>
+                </div>
+                
+                <div class="cost-card">
+                    <div class="cost-title">📊 Monitoring & Tools</div>
+                    <div class="cost-item">
+                        <span>Logging service</span>
+                        <span>$10</span>
+                    </div>
+                    <div class="cost-item">
+                        <span>Monitoring tools</span>
+                        <span>$15</span>
+                    </div>
+                    <div class="cost-item">
+                        <span>Analytics dashboard</span>
+                        <span>$10</span>
+                    </div>
+                    <div class="cost-item">
+                        <span><strong>Total Monitoring</strong></span>
+                        <span><strong>$35</strong></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px; padding: 20px; background: rgba(255, 255, 255, 0.15); border-radius: 10px;">
+                <h3>Total Monthly Operating Cost: $140</h3>
+                <p>Compared to $180+ with current OpenAI Assistant API approach</p>
+                <p><strong>Annual Savings: $480 + improved performance and capabilities</strong></p>
+            </div>
+        </div>
+        
+        <div class="implementation-checklist">
+            <h2 style="text-align: center; margin-bottom: 20px;">Implementation Roadmap Checklist</h2>
+            
+            <div class="checklist-phases">
+                <div class="phase-card">
+                    <div class="phase-title">Phase 1: Foundation (Weeks 1-2)</div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Set up Railway hosting account</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Configure Redis Cloud instance</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Set up PostgreSQL database</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Create basic Node.js app structure</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Implement Twilio webhook handler</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Add Claude 3 Haiku integration</span>
+                    </div>
+                </div>
+                
+                <div class="phase-card">
+                    <div class="phase-title">Phase 2: Core Features (Weeks 3-6)</div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Implement LangGraph orchestration</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Build Ferrari CRM connector</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Add conversation state management</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Implement booking flow logic</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Add caching layer</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Implement error handling</span>
+                    </div>
+                </div>
+                
+                <div class="phase-card">
+                    <div class="phase-title">Phase 3: Security & Testing (Weeks 7-8)</div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Add authentication system</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Implement data encryption</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Add rate limiting</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Set up monitoring and logging</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Comprehensive testing suite</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Security audit and penetration testing</span>
+                    </div>
+                </div>
+                
+                <div class="phase-card">
+                    <div class="phase-title">Phase 4: Launch & Scale (Weeks 9-12)</div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Gradual user migration (20%)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Performance optimization</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Full user migration (100%)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>WhatsApp integration</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Analytics dashboard</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox" onclick="toggleCheck(this)"></div>
+                        <span>Staff training and documentation</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function showLayer(layerName) {
+            // Hide all layers
+            const layers = document.querySelectorAll('.architecture-layer');
+            layers.forEach(layer => layer.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.layer-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected layer
+            document.getElementById(layerName + '-layer').classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+        
+        function toggleCheck(checkbox) {
+            checkbox.classList.toggle('checked');
+            if (checkbox.classList.contains('checked')) {
+                checkbox.innerHTML = '✓';
+            } else {
+                checkbox.innerHTML = '';
+            }
+        }
+    </script>
+</body>
+</html>
